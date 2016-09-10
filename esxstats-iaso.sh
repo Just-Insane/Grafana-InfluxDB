@@ -10,8 +10,12 @@
 #The time we are going to sleep between readings
 sleeptime=30
 
+##VARIABLES##
+esxipass=password
+esxiip=ipaddress
+
 #Get the Core Count via SSH
-corecount=$(sshpass -p **PassHere** ssh -oStrictHostKeyChecking=no -t root@192.168.200.5 "grep -c ^processor /proc/cpuinfo" 2> /dev/null)
+corecount=$(sshpass -p $esxipass ssh -oStrictHostKeyChecking=no -t root@$esxiip "grep -c ^processor /proc/cpuinfo" 2> /dev/null)
 corecount=$(echo $corecount | sed 's/\r$//')
 
 
@@ -27,7 +31,7 @@ do
 	while [ $i -lt $corecount ];
         do
 		let i=i+1
-                CPUs[$i]="$(snmpget -v 2c -c public 192.168.200.5 HOST-RESOURCES-MIB::hrProcessorLoad."$i" -Ov)"
+                CPUs[$i]="$(snmpget -v 2c -c public $esxiip HOST-RESOURCES-MIB::hrProcessorLoad."$i" -Ov)"
                 CPUs[$i]="$(echo "${CPUs["$i"]}" | cut -c 10-)"
                 echo "CPU"$i": ${CPUs["$i"]}%"
                 curl -i -XPOST 'http://localhost:8086/write?db=ESXiCompute' --data-binary "esxi_stats,host=lab-esxi-01,type=cpu_usage,cpu_number=$i value=${CPUs[$i]}"
@@ -35,7 +39,7 @@ do
 		i=0
 
 
-	hwinfo=$(sshpass -p **PassHere** ssh -oStrictHostKeyChecking=no -t root@192.168.200.5 "esxcfg-info --hardware")
+	hwinfo=$(sshpass -p $esxipass ssh -oStrictHostKeyChecking=no -t root@esxiip "esxcfg-info --hardware")
 
 	#Lets try to find the lines we are looking for
         while read -r line; do
